@@ -3,29 +3,8 @@ const express = require('express');
 const app = express();
 
 const productoModel = require('./models/productos');
-//const mensajeModel = require('./models/mensajes');
 
 app.use(express.json());
-
-
-/* ----------------------- ROUTES MESSAGES ----------------------- */
-/*
-    //CREATE MESSAGE
-app.post('/mensajes', (req, res) => {
-    const mensaje = req.body;
-
-    const messageSaved = new mensajeModel(mensaje);
-    messageSaved.save()
-        .then( () => res.sendStatus(201) )
-        .catch( (err) => res.send(err))
-})
-
-    //READ MESSAGES
-app.get('/mensajes', (req, res) => {
-    mensajeModel.find( {} )
-        .then((mensajes) => res.send(mensajes))
-        .catch((err) => res.send(err))
-})
 
 
 /* ----------------------- ROUTES PRODUCTS ----------------------- */
