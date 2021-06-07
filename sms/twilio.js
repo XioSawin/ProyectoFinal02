@@ -1,5 +1,5 @@
 const accountSid = 'AC5a54161b248c473a42eca18650a4cd96';
-const authToken = 'fdea2aca029fc24588e9d4cc4df35cff';
+const authToken = 'ffffffffffffffffffffffffffff';
 
 const twilio = require('twilio');
 
@@ -9,7 +9,7 @@ const enviarSMS = (mensaje) => {
     let rta = client.messages.create({
             body: mensaje, 
             from: '+12566009360',
-            to: '+541165902854'
+            to: '+54444444444444'
     })
     return rta;   
 }
