@@ -16,8 +16,8 @@ app.use(compression());
 
 /* ----------------------- CONSTANTS ----------------------- */
 const portCL = 5504;
-const FACEBOOK_APP_ID = '494152521729245'; 
-const FACEBOOK_APP_SECRET = '0054580944040256224462c493ac1ffb'; // 
+const FACEBOOK_APP_ID = '000000000000'; 
+const FACEBOOK_APP_SECRET = 'aaaaaaaaaaaa'; // 
 const modoCluster = 'CLUSTER';
 
 
@@ -170,90 +170,3 @@ if(modoCluster && cluster.isMaster) {
 }
 
 
-
-
-
-
-
-
-/* ----------------------- COMMMENTED ----------------------- */
-
-/*
-
-const productoModel = require('./models/producto');
-
------------------------ ROUTES PRODUCTS ----------------------- 
-//CREATE PRODUCT
-app.post('/productos', (req, res) => {
-    const producto = req.body;
-    
-    const productSaved = new productoModel(producto);
-    productSaved.save()
-        .then( () => res.sendStatus(201) )
-        .catch( (err) => res.send(err))
-})
-    
-//READ ALL PRODUCTS
-app.get('/productos', (req, res) => {
-
-    // FILTER PRODUCTS BY PRICE RANGE
-    const { preciogt } = req.query;
-    const { preciolt } = req.query;
-
-    // FILTER PRODUCTS BY STOCK RANGE
-    const { stockgt } = req.query;
-    const { stocklt } = req.query;
-
-    productSaved.find( {} )
-        .then((productos) => res.send(productos))
-        .catch((err) => res.send(err))
-})
-
-// UPDATE BY PRODUCT CODE
-app.put('/productos/:codigo', (req, res) => {
-    const { codigo } = req.params;
-    const { precio } = req.body;
-
-    productSaved.updateOne({codigo: codigo}, {
-        $set: {precio: precio}
-    })
-        .then((updatedProduct) => res.send(updatedProduct))
-        .catch((err) => res.send(err))
-})
-
-//READ BY PRODUCT CODE
-app.get('/productos/:codigo', (req, res) => {
-    const { codigo } = req.params;
-
-    userModel.findOne( {codigo: codigo} )
-        .then((producto) => res.send(producto))
-        .catch((err) => res.send(err))
-})
-
-//READ BY PRODUCT NAME
-app.get('/productos/:nombre', (req, res) => {
-    const { nombre } = req.params;
-
-    userModel.findOne( {nombre: nombre} )
-        .then((producto) => res.send(producto))
-        .catch((err) => res.send(err))
-})
-
-//DELETE BY PRODUCT CODE
-app.delete('/productos/:codigo', (req, res) => {
-    const { codigo } = req.params;
-
-    userModel.deleteOne( {codigo: codigo} )
-        .then(() => res.sendStatus(200))
-        .catch((err) => res.send(err))
-})
-
-
- ----------------------- MIDDLEWARE ----------------------
-app.use(express.json());
-app.use(express.urlencoded({extended:true}));
-//app.use(express.static(path.join(__dirname + "public")));
-//app.use('/productos', productos.router);
-//app.use('/carrito', require("./routes/carritoRoutes"));
-
-*/
