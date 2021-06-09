@@ -19,7 +19,7 @@
         <div class="row text-center">
           <div class="col-md-12 col-sm-12 col-xs-12">
                 <div class="heading-count">
-                    <h2>¡Hola {{nombre}}!</h2>
+                    <h2>¡Hola {{name}}!</h2>
                 </div>
           </div>
           <div class="col-md-12 col-sm-12 col-xs-12">
@@ -30,6 +30,30 @@
     </div>
 </section>
 <!-- Intro Section End -->
+
+<!-- Profile Section Start -->
+<section id="team" class="section-padding">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-6 col-md-6 col-lg-3">
+        <div class="team-item text-center">
+          <div class="team-img">
+            <img class="img-fluid" src="#">
+          </div>
+          <div class="info-text">
+            <h3>Tu perfil</h3>
+            <p>Email: {{username}}</p>
+            <p>Nombre: {{name}}</p>
+            <p>Dirección: {{address}}</p>
+            <p>Edad: {{age}}</p>
+            <p>Número de teléfono: {{phoneNumber}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Profile Section End -->
 
 <!-- Order Section Start -->
 <section id="contact" class="section-padding">
@@ -42,13 +66,12 @@
             </div>
         </div>
 
-        <form>
+        <form action="/order" method="post" role="form">
           <div class="row">
             <!-- Contact form -->
             <div class="col-md-8">
               <div class="row">
                 <div class="col-md-12">
-                  <label>Tu Pedido</label>
                   <textarea class="form-control" rows="4" id="order" name="order" required data-error="Escribe tu pedido"></textarea>
                 </div>
               </div>
