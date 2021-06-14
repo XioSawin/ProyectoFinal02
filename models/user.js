@@ -8,9 +8,12 @@ const UserSchema = new mongoose.Schema({
     password: {type: String, require: true, max: 30},
     name: {type: String, require: true, max: 50},
     address: {type: String, require: true, max: 50},
-    phoneNumber: {type: Number, require: true},
+    phoneNumber: {type: String, require: true, max: 20},
     age: {type: Number, require: true},
-    avatar: {type: String}
+    avatar: {
+        data: Buffer,
+        contentType: String
+    }
 });
 
 module.exports = mongoose.model(usersCollection, UserSchema);

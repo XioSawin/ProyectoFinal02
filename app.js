@@ -5,15 +5,26 @@ const session = require('express-session');
 const mongoose = require('mongoose');
 const handlebars = require('express-handlebars');
 const MongoStore = require('connect-mongo');
-const cluster = require('cluster');
+//const cluster = require('cluster');
 const compression = require('compression');
 const log4js = require('log4js');
-const nodemailer = require('nodemailer');
+//const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-/* -------------- file imports -------------- */
+//const fs = require('fs');
+//const path = require ('path');
 
-const userModel = require('./models/user');
+
+const app = express();
+app.use(compression());
+
+/* -------------- routes -------------- */
+
+const users = require('./routes/usersRoutes');
+const main = require('./routes/mainRoutes');
+
+app.use('/', main);
+app.use('/users', users);
 
 /* ----------------------- LOGGERS ----------------------- */
 log4js.configure({
@@ -34,342 +45,82 @@ const loggerInfo = log4js.getLogger('info');
 const loggerWarn = log4js.getLogger('warn');
 const loggerError = log4js.getLogger('error');
 
-/* ----------------------- EMAIL & SMS CONFIG ----------------------- */
-
-/* --------- email & sms config --------- */
-// ethereal
-// let ethereal = require('./email/ethereal');
-
-const adminEmail = 'clovis.kris@ethereal.email';
-
-const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    auth: {
-        user: 'clovis.kris@ethereal.email',
-        pass: 'XV2WSN8xc6KzP7bXnF'
-    }
-});
-
-const enviarEthereal = (adminEmail, asunto, mensaje) => {
-    const mailOptions ={
-        from: 'Servidor Node.js',
-        to: adminEmail,
-        subject: asunto,
-        html: mensaje
-    }
-
-    transporter.sendMail(mailOptions, (err, info) => {
-        if(err) {
-            loggerError.info(err);
-        }
-    })
-}
-
-
-
-// twilio
-// let twilio = require('./sms/twilio');
-
-const accountSid = 'AC5a54161b248c473a42eca18650a4cd96';
-const authToken = process.env.TWILIO_TOKEN;
-
-const adminNumber = process.env.WHATSAPP_NUMBER;
-
-const twilio = require('twilio');
-
-const client = twilio(accountSid, authToken);
-
-const enviarSMS = (userNumber, mensaje) => { 
-    let rta = client.messages.create({
-            body: mensaje, 
-            from: '+12566009360',
-            to: userNumber
-    })
-    return rta;   
-}
-
-const enviarWhatsApp = (adminNumber, mensaje) => { 
-    let rta = client.messages.create({
-            body: mensaje, 
-            from: 'whatsapp:+14155238886',
-            to: adminNumber
-    })
-    return rta;   
-}
-
 /* ----------------------- CONSTANTS ----------------------- */
 const portCL = 3304;
-//const FACEBOOK_APP_ID = '494152521729245'; 
-//const FACEBOOK_APP_SECRET = '0054580944040256224462c493ac1ffb'; // 
-const numCPUs = require('os').cpus().length;
-const modoCluster = process.argv[2] == 'CLUSTER';
-const app = express();
-app.use(compression());
+// const numCPUs = require('os').cpus().length;
+//const modoCluster = process.argv[2] == 'CLUSTER';
+
 
 
 /* -------------- PASSPORT w FACEBOOK & LOCAL STRATEGY-------------- */
 const passport = require('passport');
-const FacebookStrategy = require('passport-facebook').Strategy;
+//const FacebookStrategy = require('passport-facebook').Strategy;
 
-const bCrypt = require('bCrypt');
-const LocalStrategy = require('passport-local').Strategy;
+//const bCrypt = require('bCrypt');
+//const LocalStrategy = require('passport-local').Strategy;
 
 /* ----------------------------------------------------------------- */
 
-/* MASTER */
-if(modoCluster && cluster.isMaster) {
-    // if Master, crea workers
+/* ----------------------- CONFIGURATION - MIDDLEWARES ----------------------- */
 
-    loggerInfo.info(`Master ${process.pid} is running`);
-
-    // fork workers
-    for (let i=0; i<numCPUs; i++){
-        cluster.fork();
-    };
-
-    cluster.on('exit', (worker) => {
-        loggerInfo.info(`Worker ${worker.process.pid} died`);
-    });
-} else {
-
-    /* ----------------------- CONFIGURATION - MIDDLEWARES ----------------------- */
-
-    app.use(express.json());
-    app.use(express.urlencoded({extended:true}));
+app.use(express.json());
+app.use(express.urlencoded({extended:true}));
     
-    app.use(cookieParser());
-    app.use(session({
-        store: MongoStore.create({
-            mongoUrl: process.env.DB_SESSIONS_CONN,
-            ttl: 600
-        }),
-        secret: 'secret',
-        resave: false,
-        saveUninitialized: false,
-        rolling: true,
-        cookie: {
-            maxAge: 60000
-        }
-    }));
-
-
-    app.engine(
-        "hbs", 
-        handlebars({
-            extname: ".hbs",
-            defaultLayout: 'index.hbs',
-        })
-    );
-
-    app.set("view engine", "hbs");
-    app.set("views", "./views");
-
-    app.use(express.static('public'));
-    app.use(passport.initialize());
-    app.use(passport.session());
-
-    /* ----------------------- SERIALIZE & DESERIALIZE ----------------------- */
-    passport.serializeUser(function(user, cb) {
-        cb(null, user);
-    });
-
-    passport.deserializeUser(function(obj, cb) {
-        cb(null, obj);
-    });
-
-
-    /* ----------------------- REGISTRATION ----------------------- */
-
-    /* -------------- local strategy -------------- */
-
-    passport.use('register', new LocalStrategy({
-            passReqToCallback: true
-        },
-        function(req, username, password, done) {
-            const findOrCreateUser = function(){
-                userModel.findOne({'username':username}, function(err, user){
-                    if(err){
-                        loggerError.info(`Error en el registro: "${err}"`);
-                        return done(err);
-                    }
-                    // si user ya existe
-                    if (user) {
-                        loggerInfo.info('Usuario ya existe');
-                        loggerInfo.info('message', 'Usuario ya existe en la base');
-                        return done(null, false);
-                    } else {
-                        // si no existe, crear el usuario
-                        const {name, address, age, phone_number, avatar} = req.body;
-                        const user = {
-                            username,
-                            password: createHash(password),
-                            name, 
-                            address,
-                            age,
-                            phoneNumber: phone_number,
-                            avatar
-                        }
-                        const newUser = new userModel(user);
-                        newUser.save(function(err) {
-                            if(err) {
-                                loggerError.info(`Error guardando el usuario: "${err}"`);
-                                throw err;
-                            }
-                            loggerInfo.info('Usuario registrado con exito');
-                            return done(null, newUser);
-                        });
-                        
-                        enviarEthereal(adminEmail, "Nuevo Registro", JSON.stringify(newUser));
-                    }
-                });
-            }
-            process.nextTick(findOrCreateUser);
-        })
-    )
-
-    /* -------------- hash password -------------- */
-
-    const createHash = function(password) {
-        return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null);
+app.use(cookieParser());
+app.use(session({
+    store: MongoStore.create({
+        mongoUrl: process.env.DB_SESSIONS_CONN,
+        ttl: 600
+    }),
+    secret: 'secret',
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+        maxAge: 60000
     }
+}));
 
-    /* -------------- routes -------------- */
 
-    app.get('/register', (req, res) => {
-        res.sendFile(process.cwd() + '/public/register.html');
+app.engine(
+    "hbs", 
+    handlebars({
+        extname: ".hbs",
+        defaultLayout: 'index.hbs',
     })
+);
 
-    app.post('/register', passport.authenticate('register', {failureRedirect: '/failregister'}), (req, res) => {
-        res.redirect('/');
-    })
+app.set("view engine", "hbs");
+app.set("views", "./views");
 
-    app.get('/failregister', (req, res) => {
-        res.render('register-error', {});
-    })
+app.use(express.static('public'));
+app.use(passport.initialize());
+app.use(passport.session());
 
-    /* ----------------------- LOGIN ----------------------- */
 
-    /* -------------- local strategy -------------- */
-
-    passport.use('login', new LocalStrategy({
-        passReqToCallback: true
-    },
-        function(req, username, password, done) {
-            // ver en db si existe el username
-            userModel.findOne({ 'username' : username },
-                function(err, user) {
-                    // If there is an error
-                    if(err) {
-                        return done(err);
-                    }
-                    // If username does not exist on db
-                    if(!user) {
-                        loggerError.info(`Usuario "${username}" no encontrado`);
-                        loggerError.info('message', 'Usuario no encontrado');
-                        return done(null, false);
-                    }
-                    // User exists but wrong pwrd
-                    if(!isValidPassword(user, password)) {
-                        loggerError.info('Contrasena no valida');
-                        loggerError.info('message', 'Invalid Password');
-                        return done(null, false);
-                    }
-                    // si alles is goed
-                    return done(null, user);
-                }
-            );
-        })
-    );
-
-    /* -------------- check valid password -------------- */
-    const isValidPassword = function(user, password){
-        return bCrypt.compareSync(password, user.password);
-    } 
-    
-    /* -------------- routes -------------- */
-
-    app.get('/login', (req, res)=>{
-        if(req.isAuthenticated()){
-            res.render("welcome", {
-                email: req.user.username,
-                name: req.user.name,
-                address: req.user.address,
-                phoneNumber: req.user.phoneNumber,
-                age: req.user.age
-            })
+/* ----------------------- SERVER + DB CONNECTION ----------------------- */
+app.listen( process.env.PORT|| portCL, ()=>{
+    mongoose.connect(process.env.DB_CONN, 
+        {
+            useNewUrlParser: true, 
+            useUnifiedTopology: true
         }
-        else {
-            res.sendFile(process.cwd() + '/public/login.html')
-        }
-    })
-
-    app.post('/login', passport.authenticate('login', { failureRedirect: '/faillogin'}), (req, res) => {
-        res.redirect('/')
-    })
-
-    app.get('/faillogin', (req, res) => {
-        res.render('login-error', {});
-    })
-
-    app.get('/logout', (req, res)=>{
-        let nombre = req.user.name;
-
-        req.logout();
-        res.render("logout", { nombre });
+    )
+        .then( () => loggerInfo.info('Base de datos conectada') )
+        .catch( (err) => loggerError.info(err) );
+    loggerInfo.info(`Running on PORT ${portCL} - PID WORKER ${process.pid}`);
         
-    });
+})
 
-    /* ----------------------- PEDIDOS ----------------------- */
-
-    app.post('/order', (req, res) => {
-        const {order} = req.body;
-
-        let nombre = req.user.name;
-        let email = req.user.username;
-        let phoneNumber = req.user.phoneNumber;
-
-        let date = new Date().toLocaleString();
-
-        let asunto = `Nuevo pedido de ${nombre}: ${email}`;
-        let mensaje = `Pedido: ${order}`;
-
-        let bodyWhatsApp = `Nuevo pedido de ${nombre}: ${email}. Pedido: ${order}.`
-
-
-        // ethereal 
-        enviarEthereal(adminEmail, asunto, mensaje);
-
-        // whatsapp al admin
-        enviarWhatsApp(adminNumber, bodyWhatsApp);
-
-        // text al user
-        enviarSMS(phoneNumber.toString(), 'Pedido recibido y en proceso');
-
-        res.redirect('/');
-                
-    })
-
-    /* ----------------------- SERVER + DB CONNECTION ----------------------- */
-    app.listen( process.env.PORT|| portCL, ()=>{
-        mongoose.connect(process.env.DB_CONN, 
-            {
-                useNewUrlParser: true, 
-                useUnifiedTopology: true
-            }
-        )
-            .then( () => loggerInfo.info('Base de datos conectada') )
-            .catch( (err) => loggerError.info(err) );
-        loggerInfo.info(`Running on PORT ${portCL} - PID WORKER ${process.pid}`);
-        
-    })
-
-}
 
 
 /* ----------------------- COMMMENTED ----------------------- */
 
 /*
+
+
+//const FACEBOOK_APP_ID = '494152521729245'; 
+//const FACEBOOK_APP_SECRET = '0054580944040256224462c493ac1ffb'; 
 
 const productoModel = require('./models/producto');
 
@@ -444,5 +195,87 @@ app.delete('/productos/:codigo', (req, res) => {
 //app.use(express.static(path.join(__dirname + "public")));
 //app.use('/productos', productos.router);
 //app.use('/carrito', require("./routes/carritoRoutes"));
+
+
+ MASTER 
+if(modoCluster && cluster.isMaster) {
+    // if Master, crea workers
+
+    loggerInfo.info(`Master ${process.pid} is running`);
+
+    // fork workers
+    for (let i=0; i<numCPUs; i++){
+        cluster.fork();
+    };
+
+    cluster.on('exit', (worker) => {
+        loggerInfo.info(`Worker ${worker.process.pid} died`);
+    });
+} else {
+
+   ----------------------- LOGIN ----------------------- 
+    -------------- local strategy -------------- 
+
+    passport.use('login', new LocalStrategy({
+        passReqToCallback: true
+    },
+        function(req, username, password, done) {
+            // ver en db si existe el username
+            userModel.findOne({ 'username' : username },
+                function(err, user) {
+                    // If there is an error
+                    if(err) {
+                        return done(err);
+                    }
+                    // If username does not exist on db
+                    if(!user) {
+                        loggerError.info(`Usuario "${username}" no encontrado`);
+                        loggerError.info('message', 'Usuario no encontrado');
+                        return done(null, false);
+                    }
+                    // User exists but wrong pwrd
+                    if(!isValidPassword(user, password)) {
+                        loggerError.info('Contrasena no valida');
+                        loggerError.info('message', 'Invalid Password');
+                        return done(null, false);
+                    }
+                    // si alles is goed
+                    return done(null, user);
+                }
+            );
+        })
+    );
+
+    -------------- check valid password -------------- 
+    const isValidPassword = function(user, password){
+        return bCrypt.compareSync(password, user.password);
+    } 
+    
+    -------------- routes -------------- 
+
+    app.get('/login', (req, res)=>{
+        if(req.isAuthenticated()){
+            res.render("welcome", { user: user});
+        }
+        else {
+            res.sendFile(process.cwd() + '/public/login.html')
+        }
+    })
+
+    app.post('/login', passport.authenticate('login', { failureRedirect: '/faillogin'}), (req, res) => {
+        res.redirect('/')
+    })
+
+    app.get('/faillogin', (req, res) => {
+        res.render('login-error', {});
+    })
+
+    app.get('/logout', (req, res)=>{
+        let nombre = req.user.name;
+
+        req.logout();
+        res.render("logout", { nombre });
+        
+    });
 
 */

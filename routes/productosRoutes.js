@@ -5,7 +5,7 @@ const app = express();
 
 const productoModel = require('../models/producto.js');
 
-/*
+
 // timestamp
 
 function getTimestamp(){
@@ -150,4 +150,3 @@ module.exports = {
     productList
 }
 
-*/
